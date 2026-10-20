@@ -68,7 +68,7 @@
             display: flex;
             gap: 10px;
         }
-        input[type="text"] {
+        input[type="text"], input[type="password"] {
             flex: 1;
             padding: 12px;
             border-radius: 6px;
@@ -86,13 +86,42 @@
             cursor: pointer;
             font-size: 1rem;
         }
+
+        /* نافذة إدخال المفتاح داخل التطبيق */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .btn-save { background: #059669; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .btn-close { background: #64748b; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="title">❄️ خبير التكييف AI</div>
-        <button class="btn-api" onclick="setApiKey()">🔑 إعدادات API</button>
+        <button class="btn-api" onclick="openKeyModal()">🔑 إعدادات API</button>
     </div>
 
     <div class="chat-box" id="chatBox">
@@ -104,12 +133,38 @@
         <button class="send-btn" onclick="sendMessage()">إرسال</button>
     </div>
 
+    <!-- نافذة تعديل المفتاح -->
+    <div class="modal" id="keyModal">
+        <div class="modal-content">
+            <h3 style="margin:0; color:#38bdf8;">إعداد مفتاح API</h3>
+            <p style="font-size:0.85rem; color:#94a3b8; margin:0;">أدخل مفتاح Gemini API الخاص بك لتشغيل المساعد:</p>
+            <input type="password" id="apiKeyInput" placeholder="الصق المفتاح هنا (AIzaSy...)">
+            <div class="modal-buttons">
+                <button class="btn-close" onclick="closeKeyModal()">إلغاء</button>
+                <button class="btn-save" onclick="saveApiKey()">حفظ المفتاح</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        function setApiKey() {
-            const key = prompt("أدخل مفتاح Gemini API الخاص بك:");
+        function openKeyModal() {
+            const currentKey = localStorage.getItem("gemini_api_key") || "";
+            document.getElementById("apiKeyInput").value = currentKey;
+            document.getElementById("keyModal").style.display = "flex";
+        }
+
+        function closeKeyModal() {
+            document.getElementById("keyModal").style.display = "none";
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById("apiKeyInput").value.trim();
             if (key) {
-                localStorage.setItem("gemini_api_key", key.trim());
+                localStorage.setItem("gemini_api_key", key);
                 alert("تم حفظ المفتاح بنجاح!");
+                closeKeyModal();
+            } else {
+                alert("يرجى إدخال مفتاح صحيح.");
             }
         }
 
@@ -120,7 +175,7 @@
 
             const apiKey = localStorage.getItem("gemini_api_key");
             if (!apiKey) {
-                alert("يرجى إدخال مفتاح API أولاً بالضغط على زر إعدادات API.");
+                openKeyModal();
                 return;
             }
 
@@ -129,7 +184,6 @@
 
             const loadingId = appendMessage("جاري التفكير والتحليل...", "bot-msg");
 
-            // رابط مباشر معتمدة لأحدث نموذج متاح مفعل
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
             try {
