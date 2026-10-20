@@ -179,10 +179,11 @@
             appendMessage(text, "user-msg", "أنت: ");
             input.value = "";
 
-            const loadingId = appendMessage("جاري التفكير والتحليل...", "bot-msg");
+            const botMessageId = appendMessage("...", "bot-msg");
+            const botMessageElem = document.getElementById(botMessageId);
 
-            // تم تحديث اسم الموديل حصراً إلى gemini-3.8-flash كما تطلب جوجل
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+            // تفعيل نظام البث المباشر للإجابة بسرعة فائقة streamGenerateContent
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?key=${apiKey}`;
 
             try {
                 const response = await fetch(url, {
@@ -190,24 +191,53 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         contents: [{
-                            parts: [{ text: "أنت مساعد فني خبير في صيانة التكييف والتبريد (HVAC/R). أجب بنقاط عملية ومباشرة.\n\nالسؤال: " + text }]
-                        }]
+                            parts: [{ text: "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). اعطِ الحلول التشخيصية والخطوات المباشرة بدون مقدمات.\n\nالسؤال: " + text }]
+                        }],
+                        generationConfig: {
+                            temperature: 0.2,
+                            maxOutputTokens: 1000
+                        }
                     })
                 });
 
-                const data = await response.json();
-                document.getElementById(loadingId).remove();
-
-                if (data.candidates && data.candidates[0] && data.candidates[0].content.parts[0].text) {
-                    appendMessage(data.candidates[0].content.parts[0].text, "bot-msg");
-                } else if (data.error) {
-                    appendMessage("⚠️ خطأ من API: " + data.error.message, "bot-msg");
-                } else {
-                    appendMessage("⚠️ استجابة غير متوقعة، يرجى إعادة المحاولة.", "bot-msg");
+                if (!response.ok) {
+                    const errData = await response.json();
+                    botMessageElem.textContent = "⚠️ خطأ: " + (errData.error?.message || "تعذر معالجة الطلب.");
+                    return;
                 }
+
+                botMessageElem.textContent = "";
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let buffer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    // استخراج النصوص القادمة فوراً وعرضها في الشاشة
+                    const matches = buffer.matchAll(/"text":\s*"((?:[^"\\]|\\.)*)"/g);
+                    let fullText = "";
+                    for (const match of matches) {
+                        try {
+                            fullText += JSON.parse(`"${match[1]}"`);
+                        } catch(e){}
+                    }
+                    if (fullText) {
+                        botMessageElem.textContent = fullText;
+                        const chatBox = document.getElementById("chatBox");
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }
+                }
+
+                if (!botMessageElem.textContent) {
+                    botMessageElem.textContent = "تمت الاستجابة.";
+                }
+
             } catch (err) {
-                document.getElementById(loadingId).remove();
-                appendMessage("⚠️ خطأ في الاتصال: " + err.message, "bot-msg");
+                botMessageElem.textContent = "⚠️ خطأ في الاتصال: " + err.message;
             }
         }
 
