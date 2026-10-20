@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خبير التكييف AI</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #1e293b;
+        }
+        .title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+        .btn-api {
+            background-color: #059669;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .chat-box {
+            flex: 1;
+            overflow-y: auto;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #1e293b;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            padding: 10px 14px;
+            border-radius: 8px;
+            max-width: 85%;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+        }
+        .bot-msg {
+            background-color: #334155;
+            align-self: flex-start;
+        }
+        .user-msg {
+            background-color: #0284c7;
+            align-self: flex-end;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #1e293b;
+            color: white;
+            font-size: 1rem;
+        }
+        button.send-btn {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title">❄️ خبير التكييف AI</div>
+        <button class="btn-api" onclick="setApiKey()">🔑 إعدادات API</button>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+        <div class="message bot-msg">أهلاً بك أستاذ ياسر. المساعد الفني الذكي جاهز للاستخدام. كيف يمكنني مساعدتك في صيانة وتشخيص أعطال التكييف والتبريد اليوم؟</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="اكتب رمز العطل أو السؤال الفني..." onkeypress="handleKeyPress(event)">
+        <button class="send-btn" onclick="sendMessage()">إرسال</button>
+    </div>
+
+    <script>
+        function setApiKey() {
+            const key = prompt("أدخل مفتاح Gemini API الخاص بك:");
+            if (key) {
+                localStorage.setItem("gemini_api_key", key.trim());
+                alert("تم حفظ المفتاح بنجاح!");
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById("userInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            const apiKey = localStorage.getItem("gemini_api_key");
+            if (!apiKey) {
+                alert("يرجى إدخال مفتاح API أولاً بالضغط على زر إعدادات API.");
+                return;
+            }
+
+            appendMessage(text, "user-msg", "أنت: ");
+            input.value = "";
+
+            const loadingId = appendMessage("جاري التفكير والتحليل...", "bot-msg");
+
+            const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: "أنت مساعد فني متخصص ومحترف في صيانة وتشخيص أعطال التكييف والتبريد (HVAC/R). أجب بأسلوب فني واكتفِ بالحلول العملية المباشرة.\n\nالسؤال: " + text }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                document.getElementById(loadingId).remove();
+
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    appendMessage(data.candidates[0].content.parts[0].text, "bot-msg");
+                } else {
+                    appendMessage("⚠️ خطأ: " + (data.error?.message || "يرجى التحقق من المفتاح."), "bot-msg");
+                }
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                appendMessage("⚠️ تعذر الاتصال بالخادم. تحقق من الاتصال بالموقع.", "bot-msg");
+            }
+        }
+
+        function appendMessage(text, className, prefix = "") {
+            const chatBox = document.getElementById("chatBox");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `message ${className}`;
+            const id = "msg-" + Date.now();
+            msgDiv.id = id;
+            msgDiv.textContent = prefix + text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return id;
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === "Enter") sendMessage();
+        }
+    </script>
+</body>
+</html>
