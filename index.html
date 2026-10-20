@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خبير التكييف AI</title>
+    <title>خبير التكييف AI - Gemini</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -182,7 +182,7 @@
             const botMessageId = appendMessage("...", "bot-msg");
             const botMessageElem = document.getElementById(botMessageId);
 
-            // اعتماد النموذج المحدث الموصى به رسمياً gemini-3.8-flash مع معيار البث السريع sse
+            // استخدام النموذج gemini-3.8-flash مع البث SSE
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
 
             try {
@@ -194,15 +194,17 @@
                             parts: [{ text: "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). أجب بأسلوب مباشر وفي نقاط موجزة بدون مقدمات طويلة.\n\nالسؤال: " + text }]
                         }],
                         generationConfig: {
-                            temperature: 0.1,
-                            maxOutputTokens: 600
+                            // إزالة temperature (لم يعد مدعوماً في Gemini 3.8 Flash)
+                            maxOutputTokens: 600,
+                            thinking_level: "low"  // تقليل زمن الاستجابة المناسب للحوار الفني
                         }
                     })
                 });
 
                 if (!response.ok) {
-                    const errData = await response.json();
-                    botMessageElem.textContent = "⚠️ خطأ: " + (errData.error?.message || "يرجى التأكد من المفتاح.");
+                    // محاولة قراءة رسالة الخطأ النصية أولاً لتجنب فشل JSON.parse
+                    const errText = await response.text();
+                    botMessageElem.textContent = "⚠️ خطأ (" + response.status + "): " + errText;
                     return;
                 }
 
