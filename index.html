@@ -3,44 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خبير التكييف AI</title>
+    <title>خبير التكييف والتبريد AI</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background-color: #0f172a;
             color: #f8fafc;
             margin: 0;
-            padding: 15px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            box-sizing: border-box;
+            height: 100dvh;
         }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 15px;
+            gap: 8px;
+            padding-bottom: 12px;
             border-bottom: 1px solid #1e293b;
         }
-        .title {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #38bdf8;
-        }
-        .btn-api {
-            background-color: #059669;
+        .title { font-size: 1.1rem; font-weight: bold; color: #38bdf8; }
+        .header-btns { display: flex; gap: 6px; }
+        .btn-small {
+            background-color: #334155;
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
+        .btn-api { background-color: #059669; }
         .chat-box {
             flex: 1;
             overflow-y: auto;
-            margin: 15px 0;
+            margin: 12px 0;
             padding: 10px;
             background-color: #1e293b;
             border-radius: 8px;
@@ -51,25 +51,36 @@
         .message {
             padding: 10px 14px;
             border-radius: 8px;
-            max-width: 85%;
-            line-height: 1.5;
+            max-width: 88%;
+            line-height: 1.6;
             font-size: 0.95rem;
             white-space: pre-wrap;
+            word-break: break-word;
         }
-        .bot-msg {
-            background-color: #334155;
-            align-self: flex-start;
+        .bot-msg { background-color: #334155; align-self: flex-start; }
+        .user-msg { background-color: #0284c7; align-self: flex-end; }
+        .msg-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .msg-imgs img { width: 90px; height: 90px; object-fit: cover; border-radius: 6px; }
+
+        .preview-strip {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 0;
         }
-        .user-msg {
-            background-color: #0284c7;
-            align-self: flex-end;
+        .thumb { position: relative; }
+        .thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #334155; }
+        .thumb button {
+            position: absolute; top: -6px; left: -6px;
+            width: 20px; height: 20px; border-radius: 50%;
+            border: none; background: #dc2626; color: white;
+            font-size: 12px; line-height: 20px; padding: 0; cursor: pointer;
         }
-        .input-area {
-            display: flex;
-            gap: 10px;
-        }
+
+        .input-area { display: flex; gap: 8px; align-items: center; }
         input[type="text"], input[type="password"] {
             flex: 1;
+            min-width: 0;
             padding: 12px;
             border-radius: 6px;
             border: 1px solid #334155;
@@ -77,15 +88,28 @@
             color: white;
             font-size: 1rem;
         }
+        .attach-btn {
+            background-color: #334155;
+            color: white;
+            border: none;
+            padding: 0 12px;
+            height: 44px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.3rem;
+        }
         button.send-btn {
             background-color: #0284c7;
             color: white;
             border: none;
-            padding: 0 20px;
+            padding: 0 18px;
+            height: 44px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 1rem;
         }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
         .modal {
             display: none;
             position: fixed;
@@ -106,11 +130,7 @@
             gap: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
         .btn-save { background: #059669; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
         .btn-close { background: #64748b; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
     </style>
@@ -118,17 +138,24 @@
 <body>
 
     <div class="header">
-        <div class="title">❄️ خبير التكييف AI</div>
-        <button class="btn-api" onclick="openKeyModal()">🔑 إعدادات API</button>
+        <div class="title">❄️ خبير التكييف والتبريد AI</div>
+        <div class="header-btns">
+            <button class="btn-small" onclick="clearChat()">🗑 جديد</button>
+            <button class="btn-small btn-api" onclick="openKeyModal()">🔑 API</button>
+        </div>
     </div>
 
     <div class="chat-box" id="chatBox">
-        <div class="message bot-msg">أهلاً بك أستاذ ياسر. المساعد الفني الذكي جاهز للاستخدام. كيف يمكنني مساعدتك في صيانة وتشخيص أعطال التكييف والتبريد اليوم؟</div>
+        <div class="message bot-msg">أهلاً بك أستاذ ياسر. اكتب رمز العطل أو السؤال، أو أرفق صورة (لوحة الجهاز، شاشة الكنترولر، البلوك، التمديدات) بزر 📷 وسأحللها. أتذكر سياق المحادثة، فلا حاجة لإعادة موديل الجهاز في كل رسالة.</div>
     </div>
 
+    <div class="preview-strip" id="previewStrip"></div>
+
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="اكتب رمز العطل أو السؤال الفني..." onkeypress="handleKeyPress(event)">
-        <button class="send-btn" onclick="sendMessage()">إرسال</button>
+        <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="إرفاق صورة">📷</button>
+        <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files); this.value='';">
+        <input type="text" id="userInput" dir="auto" placeholder="رمز العطل أو السؤال الفني..." onkeypress="handleKeyPress(event)">
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">إرسال</button>
     </div>
 
     <div class="modal" id="keyModal">
@@ -144,16 +171,34 @@
     </div>
 
     <script>
+        // ====== الإعدادات ======
+        // قائمة النماذج بالترتيب. تأكد من الأسماء في Google AI Studio وعدّلها حسب المتاح لحسابك.
+        const MODELS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
+        const RETRY_STATUS = [404, 429, 500, 502, 503, 504];
+        const MAX_IMAGES = 4;
+        const MAX_HISTORY = 24;      // عدد الرسائل المحفوظة في السياق
+        const IMAGES_KEPT_TURNS = 2; // الصور تبقى في السياق لآخر رسالتين من المستخدم فقط
+
+        const SYSTEM_PROMPT = `أنت مساعد فني خبير لفني تبريد وتكييف محترف (مستوى Meister) في ألمانيا. المتخصص الأساسي: التبريد التجاري (Kühlzellen / غرف التبريد والتجميد، Kühlmöbel / ثلاجات العرض في السوبرماركت)، إضافة إلى التكييف السكني والتجاري (Split / VRF) من Mitsubishi Heavy وDaikin وFujitsu وSamsung.
+القواعد:
+- أجب بالعربية، ومصطلحات القطع والأجهزة بالألمانية أو الإنجليزية كما يستخدمها الفنيون (Verdampfer, Verflüssiger, Expansionsventil, Abtauung, Hochdruck/Niederdruck, Überhitzung, Unterkühlung...).
+- كن مباشراً ومختصراً في نقاط، بدون مقدمات ولا شرح للإجراءات الأساسية. المستخدم فني خبير.
+- عند عطل: رتّب الاحتمالات من الأرجح إلى الأقل، مع طريقة فحص سريعة لكل احتمال (قيم قياس متوقعة إن أمكن).
+- عند إرفاق صورة: صف ما تراه أولاً بجملة (نوع الجهاز، الموديل، المبرد، رمز الخطأ، حالة التمديدات/الجليد/الزيت/التآكل...)، ثم حلّل. إذا كانت الصورة غير واضحة أو ناقصة، اطلب صورة أوضح أو الجزء المحدد بدل التخمين.
+- إذا نقصت معلومة تغيّر التشخيص (الموديل، نوع المبرد، قراءات الضغط ودرجات الحرارة، نوع الكنترولر)، اسأل عنها بإيجاز.
+- لا تخترع رموز أخطاء أو قيم لا تعرفها. قل "غير متأكد" وأرشده للدليل الفني (Service Manual) للموديل.
+- التزم بلوائح F-Gas الأوروبية (فحص التسرب، دفتر الجهاز، استرجاع المبرد، حدود الكميات) وبأمان العمل (ضغط، كهرباء، مبردات قابلة للاشتعال A2L/A3) عند الصلة، بسطر واحد فقط.`;
+
+        let history = [];   // [{role:"user"|"model", parts:[{text}|{inline_data}]}]
+        let pending = [];   // الصور المرفقة قبل الإرسال: {data, mime, url}
+        let busy = false;
+
+        // ====== مفتاح API ======
         function openKeyModal() {
-            const currentKey = localStorage.getItem("gemini_api_key") || "";
-            document.getElementById("apiKeyInput").value = currentKey;
+            document.getElementById("apiKeyInput").value = localStorage.getItem("gemini_api_key") || "";
             document.getElementById("keyModal").style.display = "flex";
         }
-
-        function closeKeyModal() {
-            document.getElementById("keyModal").style.display = "none";
-        }
-
+        function closeKeyModal() { document.getElementById("keyModal").style.display = "none"; }
         function saveApiKey() {
             const key = document.getElementById("apiKeyInput").value.trim();
             if (key) {
@@ -165,81 +210,259 @@
             }
         }
 
-        // قائمة النماذج مرتبة حسب الأفضلية والأحدث
-        const MODELS = [
-            "gemini-1.5-flash",
-            "gemini-2.5-flash",
-            "gemini-3.8-flash"
-        ];
+        // ====== الصور ======
+        function resizeToBase64(file, maxSide = 1280, quality = 0.8) {
+            return new Promise((resolve, reject) => {
+                const objUrl = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+                    const w = Math.round(img.width * scale);
+                    const h = Math.round(img.height * scale);
+                    const canvas = document.createElement("canvas");
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                    const dataUrl = canvas.toDataURL("image/jpeg", quality);
+                    URL.revokeObjectURL(objUrl);
+                    resolve({ data: dataUrl.split(",")[1], mime: "image/jpeg", url: dataUrl });
+                };
+                img.onerror = () => { URL.revokeObjectURL(objUrl); reject(new Error("تعذر قراءة الصورة")); };
+                img.src = objUrl;
+            });
+        }
+
+        async function handleFiles(fileList) {
+            for (const file of Array.from(fileList)) {
+                if (pending.length >= MAX_IMAGES) {
+                    alert(`الحد الأقصى ${MAX_IMAGES} صور في الرسالة الواحدة.`);
+                    break;
+                }
+                if (!file.type.startsWith("image/")) continue;
+                try {
+                    pending.push(await resizeToBase64(file));
+                } catch (e) {
+                    alert("تعذر قراءة الصورة، جرب صورة أخرى.");
+                }
+            }
+            renderPreview();
+        }
+
+        function renderPreview() {
+            const strip = document.getElementById("previewStrip");
+            strip.innerHTML = "";
+            pending.forEach((p, i) => {
+                const wrap = document.createElement("div");
+                wrap.className = "thumb";
+                const img = document.createElement("img");
+                img.src = p.url;
+                const btn = document.createElement("button");
+                btn.textContent = "×";
+                btn.onclick = () => { pending.splice(i, 1); renderPreview(); };
+                wrap.appendChild(img);
+                wrap.appendChild(btn);
+                strip.appendChild(wrap);
+            });
+            strip.style.display = pending.length ? "flex" : "none";
+        }
+
+        // لصق صورة من الحافظة (للكمبيوتر)
+        document.addEventListener("paste", (e) => {
+            const files = Array.from(e.clipboardData?.files || []).filter(f => f.type.startsWith("image/"));
+            if (files.length) handleFiles(files);
+        });
+
+        // ====== الاتصال بالنموذج ======
+        function buildContents() {
+            const userIdx = [];
+            history.forEach((m, i) => { if (m.role === "user") userIdx.push(i); });
+            const keepImages = new Set(userIdx.slice(-IMAGES_KEPT_TURNS));
+            return history.map((m, i) => ({
+                role: m.role,
+                parts: m.parts.filter(p => !p.inline_data || keepImages.has(i))
+            }));
+        }
+
+        function fetchFromModel(modelName, apiKey, contents) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse`;
+            return fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                    contents: contents,
+                    generationConfig: { maxOutputTokens: 2048, temperature: 0.4 }
+                })
+            });
+        }
+
+        function setBusy(v) {
+            busy = v;
+            document.getElementById("sendBtn").disabled = v;
+        }
 
         async function sendMessage() {
+            if (busy) return;
             const input = document.getElementById("userInput");
-            const text = input.value.trim();
-            if (!text) return;
+            let text = input.value.trim();
+            if (!text && !pending.length) return;
+            if (!text) text = "حلّل الصورة وأخبرني ما المشكلة المحتملة.";
 
             const apiKey = localStorage.getItem("gemini_api_key");
-            if (!apiKey) {
-                openKeyModal();
-                return;
-            }
+            if (!apiKey) { openKeyModal(); return; }
 
-            appendMessage(text, "user-msg", "أنت: ");
+            // رسالة المستخدم
+            const images = pending;
+            pending = [];
+            renderPreview();
             input.value = "";
+            appendUserMessage(text, images);
 
-            const botMessageId = appendMessage("...", "bot-msg");
-            const botMessageElem = document.getElementById(botMessageId);
+            const parts = [{ text }];
+            images.forEach(p => parts.push({ inline_data: { mime_type: p.mime, data: p.data } }));
+            history.push({ role: "user", parts });
 
-            // تجربة النماذج المتاحة بالتوالي لضمان عدم التوقف بسبب الضغط
-            let success = false;
-            for (const model of MODELS) {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                
+            const botElem = document.getElementById(appendMessage("...", "bot-msg"));
+            setBusy(true);
+
+            // تجربة النماذج بالترتيب (النموذج الذي نجح آخر مرة أولاً)
+            const lastGood = localStorage.getItem("last_good_model");
+            const order = lastGood && MODELS.includes(lastGood)
+                ? [lastGood, ...MODELS.filter(m => m !== lastGood)]
+                : MODELS.slice();
+
+            let response = null;
+            let usedModel = null;
+            const contents = buildContents();
+
+            for (const m of order) {
                 try {
-                    const response = await fetch(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{ text: "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). أجب بنقاط عملية ومباشرة وبدون مقدمات طويلة.\n\nالسؤال: " + text }]
-                            }],
-                            generationConfig: {
-                                temperature: 0.1,
-                                maxOutputTokens: 600
-                            }
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (answer) {
-                            botMessageElem.textContent = answer;
-                            const chatBox = document.getElementById("chatBox");
-                            chatBox.scrollTop = chatBox.scrollHeight;
-                            success = true;
-                            break; // تم جلب الإجابة بنجاح! نخرج من الحلقة
-                        }
-                    }
+                    botElem.textContent = `جاري الاتصال بـ ${m}...`;
+                    response = await fetchFromModel(m, apiKey, contents);
+                    if (response.ok) { usedModel = m; break; }
+                    if (!RETRY_STATUS.includes(response.status)) break; // خطأ لا يفيد معه تغيير النموذج (مفتاح خاطئ، طلب غير صالح...)
+                    console.log(`النموذج ${m} رجع ${response.status}، جاري التحويل...`);
                 } catch (e) {
-                    console.log(`Model ${model} failed, trying next...`);
+                    console.log(`فشل الاتصال بـ ${m}:`, e);
+                    response = null;
                 }
             }
 
-            if (!success) {
-                botMessageElem.textContent = "⚠️ خوادم جوجل تشهد ضغطاً عالياً حالياً. يرجى المحاولة بعد لحظات قليلة.";
+            if (!response || !response.ok) {
+                let msg = "⚠️ تعذر الاتصال بالنماذج. ";
+                if (response) {
+                    if (response.status === 400 || response.status === 403 || response.status === 401) {
+                        msg += "تحقق من صحة مفتاح API وصلاحياته. ";
+                    }
+                    const errText = await response.text();
+                    msg += `(كود ${response.status}): ${errText.slice(0, 300)}`;
+                } else {
+                    msg += "تحقق من الإنترنت.";
+                }
+                botElem.textContent = msg;
+                history.pop(); // نزيل سؤال المستخدم الفاشل من السياق
+                setBusy(false);
+                return;
             }
+
+            localStorage.setItem("last_good_model", usedModel);
+
+            // قراءة البث (SSE)
+            botElem.textContent = "";
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+            let answer = "";
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop();
+
+                    for (let line of lines) {
+                        line = line.trim();
+                        if (!line.startsWith("data:")) continue;
+                        const jsonStr = line.slice(5).trim();
+                        if (!jsonStr || jsonStr === "[DONE]") continue;
+                        try {
+                            const parsed = JSON.parse(jsonStr);
+                            const partsOut = parsed.candidates?.[0]?.content?.parts || [];
+                            const chunk = partsOut.filter(p => p.text && !p.thought).map(p => p.text).join("");
+                            if (chunk) {
+                                answer += chunk;
+                                botElem.textContent = answer;
+                                const chatBox = document.getElementById("chatBox");
+                                chatBox.scrollTop = chatBox.scrollHeight;
+                            }
+                        } catch (e) {}
+                    }
+                }
+            } catch (err) {
+                if (!answer) botElem.textContent = "⚠️ انقطع الاتصال أثناء استلام الإجابة.";
+            }
+
+            if (answer) {
+                history.push({ role: "model", parts: [{ text: answer }] });
+                trimHistory();
+            } else {
+                if (!botElem.textContent.startsWith("⚠️")) {
+                    botElem.textContent = "لم يتم تلقي أي نص، جرب صياغة أخرى أو صورة أوضح.";
+                }
+                history.pop();
+            }
+            setBusy(false);
         }
 
-        function appendMessage(text, className, prefix = "") {
+        function trimHistory() {
+            if (history.length > MAX_HISTORY) history = history.slice(-MAX_HISTORY);
+            while (history.length && history[0].role !== "user") history.shift();
+        }
+
+        // ====== واجهة ======
+        function appendUserMessage(text, images) {
             const chatBox = document.getElementById("chatBox");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = `message ${className}`;
-            const id = "msg-" + Date.now() + Math.random().toString(36).substr(2, 5);
-            msgDiv.id = id;
-            msgDiv.textContent = prefix + text;
-            chatBox.appendChild(msgDiv);
+            const div = document.createElement("div");
+            div.className = "message user-msg";
+            if (images.length) {
+                const strip = document.createElement("div");
+                strip.className = "msg-imgs";
+                images.forEach(p => {
+                    const im = document.createElement("img");
+                    im.src = p.url;
+                    strip.appendChild(im);
+                });
+                div.appendChild(strip);
+            }
+            const t = document.createElement("div");
+            t.setAttribute("dir", "auto");
+            t.textContent = text;
+            div.appendChild(t);
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function appendMessage(text, className) {
+            const chatBox = document.getElementById("chatBox");
+            const div = document.createElement("div");
+            div.className = `message ${className}`;
+            div.setAttribute("dir", "auto");
+            const id = "msg-" + Date.now() + Math.random().toString(36).slice(2, 7);
+            div.id = id;
+            div.textContent = text;
+            chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             return id;
+        }
+
+        function clearChat() {
+            if (busy) return;
+            history = [];
+            pending = [];
+            renderPreview();
+            document.getElementById("chatBox").innerHTML = "";
+            appendMessage("تم بدء محادثة جديدة. كيف أساعدك؟", "bot-msg");
         }
 
         function handleKeyPress(e) {
