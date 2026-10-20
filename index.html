@@ -182,7 +182,7 @@
             const botMessageId = appendMessage("...", "bot-msg");
             const botMessageElem = document.getElementById(botMessageId);
 
-            // استخدام النموذج gemini-3.8-flash مع البث SSE
+            // استخدام الإصدار الأحدث gemini-3.8-flash 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
 
             try {
@@ -193,17 +193,17 @@
                         contents: [{
                             parts: [{ text: "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). أجب بأسلوب مباشر وفي نقاط موجزة بدون مقدمات طويلة.\n\nالسؤال: " + text }]
                         }],
+                        // الإعدادات الآمنة والمتوافقة 100% مع جميع إصدارات Gemini
                         generationConfig: {
-    maxOutputTokens: 600,
-    thinkingConfig: {
-        thinkingLevel: "low"
-    }
-}
+                            maxOutputTokens: 800
+                        }
+                    })
+                });
 
+                // إذا حدث خطأ في الطلب (مثل مفتاح خاطئ)، اعرض الرسالة النصية
                 if (!response.ok) {
-                    // محاولة قراءة رسالة الخطأ النصية أولاً لتجنب فشل JSON.parse
                     const errText = await response.text();
-                    botMessageElem.textContent = "⚠️ خطأ (" + response.status + "): " + errText;
+                    botMessageElem.textContent = "⚠️ خطأ في الاستجابة (" + response.status + "):\n" + errText;
                     return;
                 }
 
@@ -212,13 +212,14 @@
                 const decoder = new TextDecoder("utf-8");
                 let buffer = "";
 
+                // معالجة البث المباشر (SSE)
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split("\n");
-                    buffer = lines.pop();
+                    buffer = lines.pop(); // الاحتفاظ بالسطر الأخير غير المكتمل
 
                     for (const line of lines) {
                         if (line.startsWith("data: ")) {
@@ -232,17 +233,19 @@
                                     const chatBox = document.getElementById("chatBox");
                                     chatBox.scrollTop = chatBox.scrollHeight;
                                 }
-                            } catch (e) {}
+                            } catch (e) {
+                                // تجاهل أي أجزاء غير مكتملة أثناء البث
+                            }
                         }
                     }
                 }
 
                 if (!botMessageElem.textContent) {
-                    botMessageElem.textContent = "لم يتم تلقي استجابة، يرجى إعادة المحاولة.";
+                    botMessageElem.textContent = "لم يتم تلقي أي استجابة، يرجى إعادة المحاولة أو التأكد من صحة المفتاح.";
                 }
 
             } catch (err) {
-                botMessageElem.textContent = "⚠️ خطأ في الاتصال: " + err.message;
+                botMessageElem.textContent = "⚠️ خطأ في الاتصال بالخادم: " + err.message;
             }
         }
 
@@ -250,7 +253,7 @@
             const chatBox = document.getElementById("chatBox");
             const msgDiv = document.createElement("div");
             msgDiv.className = `message ${className}`;
-            const id = "msg-" + Date.now();
+            const id = "msg-" + Date.now() + Math.random().toString(36).substr(2, 5);
             msgDiv.id = id;
             msgDiv.textContent = prefix + text;
             chatBox.appendChild(msgDiv);
