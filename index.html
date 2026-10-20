@@ -182,8 +182,8 @@
             const botMessageId = appendMessage("...", "bot-msg");
             const botMessageElem = document.getElementById(botMessageId);
 
-            // استخدام نموذج gemini-2.5-flash لضمان استقرار الخوادم والسرعة الفائقة
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
+            // اعتماد النموذج المحدث الموصى به رسمياً gemini-3.8-flash مع معيار البث السريع sse
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
 
             try {
                 const response = await fetch(url, {
