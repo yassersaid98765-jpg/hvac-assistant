@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خبير التكييف AI - محرك مزدوج</title>
+    <title>خبير التكييف AI</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -118,12 +118,12 @@
 <body>
 
     <div class="header">
-        <div class="title">❄️ خبير التكييف AI (محرك مزدوج)</div>
+        <div class="title">❄️ خبير التكييف AI</div>
         <button class="btn-api" onclick="openKeyModal()">🔑 إعدادات API</button>
     </div>
 
     <div class="chat-box" id="chatBox">
-        <div class="message bot-msg">أهلاً بك أستاذ ياسر. تم تفعيل نظام "الاحتياط التلقائي" لضمان استمرار العمل حتى لو كان الخادم مشغولاً. كيف أساعدك؟</div>
+        <div class="message bot-msg">أهلاً بك أستاذ ياسر. المساعد الفني الذكي جاهز للاستخدام. كيف يمكنني مساعدتك في صيانة وتشخيص أعطال التكييف والتبريد اليوم؟</div>
     </div>
 
     <div class="input-area">
@@ -165,19 +165,12 @@
             }
         }
 
-        // دالة مساعدة لتنفيذ الطلب لنموذج معين
-        async function fetchFromModel(modelName, apiKey, promptText) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: promptText }] }],
-                    generationConfig: { maxOutputTokens: 800 }
-                })
-            });
-            return response;
-        }
+        // قائمة النماذج مرتبة حسب الأفضلية والأحدث
+        const MODELS = [
+            "gemini-1.5-flash",
+            "gemini-2.5-flash",
+            "gemini-3.8-flash"
+        ];
 
         async function sendMessage() {
             const input = document.getElementById("userInput");
@@ -196,79 +189,44 @@
             const botMessageId = appendMessage("...", "bot-msg");
             const botMessageElem = document.getElementById(botMessageId);
 
-            const promptText = "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). أجب بأسلوب مباشر وفي نقاط موجزة بدون مقدمات طويلة.\n\nالسؤال: " + text;
-            
-            // قائمة النماذج التي سنجربها بالترتيب
-            const models = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-1.5-flash-latest"];
-            let response = null;
-
-            // 1. محاولة الاتصال بأول نموذج، وإذا فشل نجرب الذي يليه
-            for (let i = 0; i < models.length; i++) {
+            // تجربة النماذج المتاحة بالتوالي لضمان عدم التوقف بسبب الضغط
+            let success = false;
+            for (const model of MODELS) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                
                 try {
-                    botMessageElem.textContent = `جاري الاتصال بـ ${models[i]}...`;
-                    response = await fetchFromModel(models[i], apiKey, promptText);
-                    
+                    const response = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). أجب بنقاط عملية ومباشرة وبدون مقدمات طويلة.\n\nالسؤال: " + text }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.1,
+                                maxOutputTokens: 600
+                            }
+                        })
+                    });
+
                     if (response.ok) {
-                        break; // نجح الاتصال، اخرج من الحلقة
-                    } else if (response.status === 503 || response.status === 429) {
-                        // الخادم مشغول، جرب النموذج التالي
-                        console.log(`النموذج ${models[i]} مشغول، جاري التحويل...`);
-                        continue; 
-                    } else {
-                        // خطأ آخر (مثل مفتاح خاطئ)، لا داعي لتجربة الباقي
-                        break;
-                    }
-                } catch (e) {
-                    console.log(`فشل الاتصال بـ ${models[i]}:`, e);
-                }
-            }
-
-            if (!response || !response.ok) {
-                let errMsg = "⚠️ تعذر الاتصال بجميع النماذج. ";
-                if (response) {
-                    const errText = await response.text();
-                    errMsg += `(كود ${response.status}): ${errText}`;
-                }
-                botMessageElem.textContent = errMsg;
-                return;
-            }
-
-            // 2. معالجة البث المباشر (SSE) من النموذج الذي نجح
-            botMessageElem.textContent = "";
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            let buffer = "";
-
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split("\n");
-                    buffer = lines.pop();
-
-                    for (const line of lines) {
-                        if (line.startsWith("data: ")) {
-                            const jsonStr = line.replace("data: ", "").trim();
-                            if (jsonStr === "[DONE]") continue;
-                            try {
-                                const parsed = JSON.parse(jsonStr);
-                                const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                                if (chunkText) {
-                                    botMessageElem.textContent += chunkText;
-                                    const chatBox = document.getElementById("chatBox");
-                                    chatBox.scrollTop = chatBox.scrollHeight;
-                                }
-                            } catch (e) {}
+                        const data = await response.json();
+                        const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (answer) {
+                            botMessageElem.textContent = answer;
+                            const chatBox = document.getElementById("chatBox");
+                            chatBox.scrollTop = chatBox.scrollHeight;
+                            success = true;
+                            break; // تم جلب الإجابة بنجاح! نخرج من الحلقة
                         }
                     }
+                } catch (e) {
+                    console.log(`Model ${model} failed, trying next...`);
                 }
-                if (!botMessageElem.textContent) {
-                    botMessageElem.textContent = "لم يتم تلقي أي نص، جرب سؤالاً آخر.";
-                }
-            } catch (err) {
-                botMessageElem.textContent = "⚠️ انقطع الاتصال أثناء استلام الإجابة.";
+            }
+
+            if (!success) {
+                botMessageElem.textContent = "⚠️ خوادم جوجل تشهد ضغطاً عالياً حالياً. يرجى المحاولة بعد لحظات قليلة.";
             }
         }
 
