@@ -194,12 +194,11 @@
                             parts: [{ text: "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). أجب بأسلوب مباشر وفي نقاط موجزة بدون مقدمات طويلة.\n\nالسؤال: " + text }]
                         }],
                         generationConfig: {
-                            // إزالة temperature (لم يعد مدعوماً في Gemini 3.8 Flash)
-                            maxOutputTokens: 600,
-                            thinking_level: "low"  // تقليل زمن الاستجابة المناسب للحوار الفني
-                        }
-                    })
-                });
+    maxOutputTokens: 600,
+    thinkingConfig: {
+        thinkingLevel: "low"
+    }
+}
 
                 if (!response.ok) {
                     // محاولة قراءة رسالة الخطأ النصية أولاً لتجنب فشل JSON.parse
