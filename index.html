@@ -181,8 +181,8 @@
 
             const loadingId = appendMessage("جاري التفكير والتحليل...", "bot-msg");
 
-            // تم تحديث الموديل بالنسخة المطلوبة رسمياً من جوجل
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+            // تم اعتماد المسار المباشر والمستقر للنموذج gemini-2.5-flash
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
             try {
                 const response = await fetch(url, {
@@ -190,7 +190,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         contents: [{
-                            parts: [{ text: "أنت مساعد فني متخصص ومحترف في صيانة وتشخيص أعطال التكييف والتبريد (HVAC/R). أجب بأسلوب فني واكتفِ بالحلول العملية المباشرة.\n\nالسؤال: " + text }]
+                            parts: [{ text: "أنت مساعد فني خبير في صيانة التكييف والتبريد (HVAC/R). أجب بنقاط عملية ومباشرة.\n\nالسؤال: " + text }]
                         }]
                     })
                 });
@@ -198,14 +198,16 @@
                 const data = await response.json();
                 document.getElementById(loadingId).remove();
 
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                if (data.candidates && data.candidates[0] && data.candidates[0].content.parts[0].text) {
                     appendMessage(data.candidates[0].content.parts[0].text, "bot-msg");
+                } else if (data.error) {
+                    appendMessage("⚠️ خطأ من API: " + data.error.message, "bot-msg");
                 } else {
-                    appendMessage("⚠️ خطأ: " + (data.error?.message || "يرجى التحقق من المفتاح."), "bot-msg");
+                    appendMessage("⚠️ استجابة غير متوقعة، يرجى إعادة المحاولة.", "bot-msg");
                 }
             } catch (err) {
                 document.getElementById(loadingId).remove();
-                appendMessage("⚠️ تعذر الاتصال بالخادم. تحقق من الاتصال بالموقع.", "bot-msg");
+                appendMessage("⚠️ خطأ اتؤثر على الاتصال: " + err.message, "bot-msg");
             }
         }
 
