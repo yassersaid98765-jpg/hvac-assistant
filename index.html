@@ -182,8 +182,8 @@
             const botMessageId = appendMessage("...", "bot-msg");
             const botMessageElem = document.getElementById(botMessageId);
 
-            // تفعيل نظام البث المباشر للإجابة بسرعة فائقة streamGenerateContent
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?key=${apiKey}`;
+            // استخدام طريقة alt=sse للبث السريع خفيف الوزن مباشرة من خوادم جوجل
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
 
             try {
                 const response = await fetch(url, {
@@ -191,18 +191,18 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         contents: [{
-                            parts: [{ text: "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). اعطِ الحلول التشخيصية والخطوات المباشرة بدون مقدمات.\n\nالسؤال: " + text }]
+                            parts: [{ text: "أنت مساعد فني خبير ومختصر جداً في صيانة التكييف والتبريد (HVAC/R). أجب بأسلوب مباشر وفي نقاط موجزة بدون مقدمات طويلة.\n\nالسؤال: " + text }]
                         }],
                         generationConfig: {
-                            temperature: 0.2,
-                            maxOutputTokens: 1000
+                            temperature: 0.1,
+                            maxOutputTokens: 600
                         }
                     })
                 });
 
                 if (!response.ok) {
                     const errData = await response.json();
-                    botMessageElem.textContent = "⚠️ خطأ: " + (errData.error?.message || "تعذر معالجة الطلب.");
+                    botMessageElem.textContent = "⚠️ خطأ: " + (errData.error?.message || "يرجى التأكد من المفتاح.");
                     return;
                 }
 
@@ -216,24 +216,28 @@
                     if (done) break;
 
                     buffer += decoder.decode(value, { stream: true });
-                    
-                    // استخراج النصوص القادمة فوراً وعرضها في الشاشة
-                    const matches = buffer.matchAll(/"text":\s*"((?:[^"\\]|\\.)*)"/g);
-                    let fullText = "";
-                    for (const match of matches) {
-                        try {
-                            fullText += JSON.parse(`"${match[1]}"`);
-                        } catch(e){}
-                    }
-                    if (fullText) {
-                        botMessageElem.textContent = fullText;
-                        const chatBox = document.getElementById("chatBox");
-                        chatBox.scrollTop = chatBox.scrollHeight;
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop(); // الاحتفاظ بالسطر غير الأخير للدفعة القادمة
+
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const jsonStr = line.replace("data: ", "").trim();
+                            if (jsonStr === "[DONE]") continue;
+                            try {
+                                const parsed = JSON.parse(jsonStr);
+                                const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                                if (chunkText) {
+                                    botMessageElem.textContent += chunkText;
+                                    const chatBox = document.getElementById("chatBox");
+                                    chatBox.scrollTop = chatBox.scrollHeight;
+                                }
+                            } catch (e) {}
+                        }
                     }
                 }
 
                 if (!botMessageElem.textContent) {
-                    botMessageElem.textContent = "تمت الاستجابة.";
+                    botMessageElem.textContent = "لم يتم تلقي استجابة، يرجى إعادة المحاولة.";
                 }
 
             } catch (err) {
