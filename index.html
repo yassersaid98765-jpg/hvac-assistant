@@ -181,8 +181,8 @@
 
             const loadingId = appendMessage("جاري التفكير والتحليل...", "bot-msg");
 
-            // تم اعتماد المسار المباشر والمستقر للنموذج gemini-2.5-flash
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            // تم تحديث اسم الموديل حصراً إلى gemini-3.8-flash كما تطلب جوجل
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
 
             try {
                 const response = await fetch(url, {
@@ -207,7 +207,7 @@
                 }
             } catch (err) {
                 document.getElementById(loadingId).remove();
-                appendMessage("⚠️ خطأ اتؤثر على الاتصال: " + err.message, "bot-msg");
+                appendMessage("⚠️ خطأ في الاتصال: " + err.message, "bot-msg");
             }
         }
 
